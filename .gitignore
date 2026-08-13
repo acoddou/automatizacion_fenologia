@@ -1,0 +1,18 @@
+# R
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# Datos pesados / outputs generados
+02_output/*/
+!02_output/.gitkeep
+
+# GEE / credenciales
+.secrets/
+*.json
+
+# OS
+.DS_Store
+Thumbs.db
