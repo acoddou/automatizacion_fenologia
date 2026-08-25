@@ -9,6 +9,15 @@
 02_output/*/
 !02_output/.gitkeep
 
+# Datos de entrada (shapefiles, catastro CONAF, bibliografía, documentos) --
+# se quedan en el computador por ahora; la interfaz permitirá subirlos, y
+# datos pesados como el catastro se evaluarán aparte (ej. Zenodo) si hace falta
+00_input/*
+!00_input/.gitkeep
+
+# Documentos sueltos en la raíz (no son código)
+/*.pptx
+
 # GEE / credenciales
 .secrets/
 *.json

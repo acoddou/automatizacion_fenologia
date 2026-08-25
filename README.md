@@ -34,8 +34,11 @@ automatizacion_fenologia/
 │   └── area.shp                      # Único input manual: el polígono del área a analizar
 │
 ├── 01_pipeline/
-│   ├── 01_extraccion_landsat.R       # rgee: NDVI Landsat recortado al shp, por rango de fechas
-│   ├── 02_limpieza_series.R          # Filtro de nubes (QA_PIXEL) y gap-filling
+│   ├── 00_inicializar_gee.R           # Autenticación rgee/Earth Engine (correr 1 vez por sesión de R)
+│   ├── 01_extraccion_landsat.R       # rgee: NDVI Landsat recortado al shp, con enmascarado de nubes
+│   │                                  # (QA_PIXEL) aplicado en Earth Engine antes de extraer
+│   ├── 02_limpieza_series.R          # Regularización temporal (binning por periodo) y gap-filling
+│   │                                  # sobre los huecos que dejó el enmascarado de nubes
 │   ├── 03_fenologia_phenofit.R       # Suavizado + extracción SOS/EOS/PET/LOS/LIN/AMP (reemplaza TIMESAT)
 │   ├── 04_muestreo_espacial.R        # Muestreo estratificado sobre el área (genérico, no fijo a Aguas de Ramón)
 │   └── 05_outputs.R                  # Tablas, rasters y plots automáticos
