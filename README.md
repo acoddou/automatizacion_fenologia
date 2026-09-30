@@ -1,5 +1,7 @@
 # Automatización de Análisis Fenológico — Landsat
 
+[![DOI](https://zenodo.org/badge/1333526786.svg)](https://doi.org/10.5281/zenodo.23067268)
+
 Pipeline automatizado para caracterizar la respuesta fenológica de cualquier área de interés
 (bosque, matorral, cuenca, etc.) a partir de un shapefile de entrada, usando series de tiempo
 NDVI de Landsat y extracción de métricas fenológicas 100% scripteada en R (sin TIMESAT).
