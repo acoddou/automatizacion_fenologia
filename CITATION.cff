@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "Si usás este software, por favor citalo como se indica a continuación."
+title: "Automatización de Análisis Fenológico — Landsat"
+abstract: >-
+  Pipeline automatizado para caracterizar la respuesta fenológica de cualquier
+  área de interés a partir de un shapefile de entrada, usando series de
+  tiempo NDVI de Landsat y extracción de métricas fenológicas 100%
+  scripteada en R (sin TIMESAT).
+authors:
+  - family-names: Coddou
+    given-names: Agustin
+    orcid: "https://orcid.org/0009-0006-3985-3942"
+repository-code: "https://github.com/acoddou/automatizacion_fenologia"
+license: MIT
+version: 1.0.0
+date-released: "2026-09-30"
