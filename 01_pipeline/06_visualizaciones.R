@@ -31,7 +31,7 @@ generar_visualizaciones <- function(resultado_pipeline,
                                      evento_label = "Evento") {
 
   fecha_corrida <- format(Sys.Date(), "%Y-%m-%d")
-  etiqueta_run <- sprintf("Extracción automatizada — pipeline automatizacion_fenologia, corrida %s", fecha_corrida)
+  etiqueta_run <- sprintf("Extracción automatizada - pipeline automatizacion_fenologia, corrida %s", fecha_corrida)
 
   if (is.null(output_dir)) output_dir <- dirname(resultado_pipeline$fenologia$csv_path)
   carpeta_plots <- file.path(output_dir, "plots")
@@ -59,7 +59,7 @@ generar_visualizaciones <- function(resultado_pipeline,
 
   png(file.path(carpeta_plots, "01_mapa_ndvi.png"), width = 1000, height = 850, res = 120, bg = "white")
   plot(r_ndvi, col = paleta, range = c(-0.2, 0.8),
-       main = paste0("NDVI Landsat — ", nombre_area, " (", format(fecha_usada, "%d-%b-%Y"), ")"))
+       main = paste0("NDVI Landsat - ", nombre_area, " (", format(fecha_usada, "%d-%b-%Y"), ")"))
   mtext(etiqueta_run, side = 1, line = 3.5, cex = 0.7, col = "grey30", font = 3)
   dev.off()
 
@@ -84,7 +84,7 @@ generar_visualizaciones <- function(resultado_pipeline,
   p_serie <- ggplot(resumen_general, aes(x = fecha, y = ndvi_medio)) +
     geom_line(color = "grey60", alpha = 0.5, linewidth = 0.4) +
     geom_line(aes(y = ndvi_suave), color = "#1a7a3c", linewidth = 1.1) +
-    labs(title = paste0("Serie de tiempo de NDVI (Landsat) — ", nombre_area),
+    labs(title = paste0("Serie de tiempo de NDVI (Landsat) - ", nombre_area),
          subtitle = etiqueta_run, x = NULL, y = "NDVI promedio") +
     theme_minimal(base_size = 12) +
     theme(plot.subtitle = element_text(size = 8, color = "grey40", face = "italic"))
@@ -133,7 +133,7 @@ generar_visualizaciones <- function(resultado_pipeline,
     p_cob <- ggplot(serie_cob, aes(x = fecha, y = ndvi_medio, color = cobertura)) +
       geom_line(alpha = 0.25, linewidth = 0.4) +
       geom_line(aes(y = ndvi_suave), linewidth = 1) +
-      labs(title = paste0("NDVI por cobertura — ", nombre_area), subtitle = etiqueta_run,
+      labs(title = paste0("NDVI por cobertura - ", nombre_area), subtitle = etiqueta_run,
            x = NULL, y = "NDVI promedio", color = "Cobertura") +
       theme_minimal(base_size = 12) +
       theme(legend.position = "bottom", plot.subtitle = element_text(size = 8, color = "grey40", face = "italic"))
@@ -143,7 +143,7 @@ generar_visualizaciones <- function(resultado_pipeline,
     p_violin <- ggplot(feno_cob, aes(x = cobertura, y = LIN, fill = cobertura)) +
       geom_violin(alpha = 0.5, trim = FALSE) +
       geom_boxplot(width = 0.15, outlier.size = 0.8, alpha = 0.8) +
-      labs(title = paste0("Productividad acumulada (LIN) por cobertura — ", nombre_area),
+      labs(title = paste0("Productividad acumulada (LIN) por cobertura - ", nombre_area),
            subtitle = etiqueta_run, x = "Cobertura", y = "NDVI acumulado / periodo") +
       theme_minimal(base_size = 12) +
       theme(legend.position = "none", plot.subtitle = element_text(size = 8, color = "grey40", face = "italic"))
@@ -237,7 +237,7 @@ generar_visualizaciones <- function(resultado_pipeline,
 
   p_metricas <- p_metricas +
     facet_wrap(~metrica, scales = "free_y", ncol = 2) +
-    labs(title = paste0("Evolución interanual de métricas fenológicas — ", nombre_area),
+    labs(title = paste0("Evolución interanual de métricas fenológicas - ", nombre_area),
          subtitle = etiqueta_run, x = NULL, y = NULL, color = "Cobertura", fill = "Cobertura") +
     theme_minimal(base_size = 12) +
     theme(legend.position = "bottom",

@@ -14,7 +14,7 @@ shp_path     <- "00_input/plaza_sur.shp"   # polígono del área (.shp+.shx+.dbf
 fecha_inicio <- "2022-01-01"
 fecha_fin    <- "2026-07-31"
 nombre_area  <- "plaza_sur"                         # nombre libre, se usa para nombrar la carpeta de salida
-gee_user     <- "agustincoddoudiaz@gmail.com"
+gee_user     <- "tu_correo@gmail.com"
 conaf_path   <- NULL                              # opcional: "00_input/conaf_mi_area.shp" -- si no hay capa
                                                    # de cobertura para esta área, dejar en NULL
 # --------------------------------------------------------------------------

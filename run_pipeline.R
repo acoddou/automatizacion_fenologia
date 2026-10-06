@@ -5,25 +5,22 @@
 #   2. Regularización temporal y gap-filling
 #   3. Extracción de métricas fenológicas (Savitzky-Golay + Zhang, phenofit)
 #   4. Mapas y gráficos (NDVI, métricas fenológicas -- ver 06_visualizaciones.R)
-#   5. (opcional) Muestreo estratificado + clasificación de cobertura
-#      -- solo si se pasan conaf_path y raster_clasificacion_path
 #
 # Uso:
 #   source("run_pipeline.R")
 #   resultado <- correr_pipeline(
-#     shp_path     = "00_input/limite_apoquindo.shp",
+#     shp_path     = "00_input/area.shp",
 #     fecha_inicio = "2023-01-01",
 #     fecha_fin    = "2024-12-31",
-#     nombre_area  = "apoquindo",
-#     gee_user     = "agustincoddoudiaz@gmail.com",
-#     conaf_path   = "00_input/conaf_apoquindo.shp"  # opcional, agrega desglose por cobertura
+#     nombre_area  = "mi_area",
+#     gee_user     = "tu_correo@gmail.com",
+#     conaf_path   = "00_input/cobertura.shp"  # opcional, agrega desglose por cobertura
 #   )
 # ==========================================================================
 
 source("01_pipeline/01_extraccion_landsat.R")
 source("01_pipeline/02_limpieza_series.R")
 source("01_pipeline/03_fenologia_phenofit.R")
-source("01_pipeline/04_muestreo_espacial.R")
 source("01_pipeline/06_visualizaciones.R")
 
 #' Corre el pipeline completo de automatización de fenología, de punta a punta
@@ -37,8 +34,7 @@ source("01_pipeline/06_visualizaciones.R")
 #' @param periods_per_year Periodos por año para regularizar la serie (default 24)
 #' @param sos_eos_trs Umbral de amplitud estacional para SOS/EOS (default 0.2)
 #' @param conaf_path Ruta a la capa de cobertura (CONAF u otra) -- opcional, si se
-#'   entrega junto con raster_clasificacion_path se agrega el Paso 4 (clasificación)
-#' @param raster_clasificacion_path Ruta al raster RGB+NDVI para clasificación -- opcional
+#'   entrega se agrega el desglose por cobertura en los gráficos
 #' @param campo_cobertura Campo de la capa de cobertura a usar (default "USO")
 correr_pipeline <- function(shp_path,
                              fecha_inicio,
@@ -50,7 +46,6 @@ correr_pipeline <- function(shp_path,
                              periods_per_year = 24,
                              sos_eos_trs = 0.2,
                              conaf_path = NULL,
-                             raster_clasificacion_path = NULL,
                              campo_cobertura = "USO",
                              fecha_evento = NULL,
                              evento_label = "Evento") {
@@ -68,8 +63,7 @@ correr_pipeline <- function(shp_path,
     ))
   }
 
-  incluye_clasificacion <- !is.null(conaf_path) && !is.null(raster_clasificacion_path)
-  n_pasos <- if (incluye_clasificacion) 5 else 4
+  n_pasos <- 4
   t0 <- Sys.time()
 
   cat(strrep("=", 72), "\n")
@@ -115,17 +109,6 @@ correr_pipeline <- function(shp_path,
   )
   cat(sprintf("   listo -- %.1f min transcurridos\n\n", as.numeric(difftime(Sys.time(), t0, units = "mins"))))
   resultado$visualizaciones <- archivos_viz
-
-  # -- Paso 5 (opcional): muestreo + clasificación ---------------------------
-  if (incluye_clasificacion) {
-    cat(sprintf(">> [Paso 5/%d] Muestreo estratificado y clasificación de cobertura (RandomForest)...\n", n_pasos))
-    res_clasif <- muestrear_y_clasificar(
-      raster_path = raster_clasificacion_path, conaf_path = conaf_path,
-      nombre_area = nombre_area, output_dir = output_dir, campo_cobertura = campo_cobertura
-    )
-    cat(sprintf("   listo -- %.1f min transcurridos\n\n", as.numeric(difftime(Sys.time(), t0, units = "mins"))))
-    resultado$clasificacion <- res_clasif
-  }
 
   t_total <- as.numeric(difftime(Sys.time(), t0, units = "mins"))
   cat(strrep("=", 72), "\n")

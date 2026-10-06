@@ -16,8 +16,7 @@ pacman::p_load(
   readr
 )
 
-# 2. Enmascarado de nubes (compartido entre extraer_landsat() y
-# extraer_raster_clasificacion()) ---------------------------------------
+# 2. Enmascarado de nubes (usado por extraer_landsat()) ----------------------
 # Usa el bitmask QA_PIXEL de Collection 2 (bit 1 = Dilated Cloud, 2 = Cirrus,
 # 3 = Cloud, 4 = Cloud Shadow, 5 = Snow). Los píxeles marcados quedan como NA.
 enmascarar_nubes_l8 <- function(image) {
@@ -66,7 +65,11 @@ extraer_landsat <- function(shp_path,
   # geometria: Earth Engine no acepta nombres de propiedad con puntos, y
   # shapefiles con muchos atributos (ej. exportados desde OpenStreetMap)
   # suelen traer columnas como "X.id" que rompen sf_as_ee() al subirlas.
-  area <- sf::st_sf(geometry = sf::st_geometry(area))
+  area <- sf::st_sf(geometry = sf::st_zm(sf::st_geometry(area), drop = TRUE))
+  # st_zm(drop = TRUE) descarta la dimensión Z si el shapefile la trae (ej.
+  # digitalizado con Z=0 en QGIS): rgee/EE espera GeoJSON plano XY, y una
+  # geometría XYZ produce "Invalid GeoJSON geometry" al subirla, aunque
+  # sf::st_is_valid() la vea perfectamente válida.
   area_ee <- rgee::sf_as_ee(area)
   
   # 3.3 Preparar carpeta de salida -------------------------------------------
@@ -151,122 +154,4 @@ extraer_landsat <- function(shp_path,
 
   cat("✔️ Extracción completa. CSV guardado en:", ruta_csv, "\n")
   return(list(carpeta_area = carpeta_area, csv_path = ruta_csv, n_puntos = nrow(grilla)))
-}
-
-# 4. Función auxiliar: raster RGB + NDVI para clasificación de cobertura -----
-#' Descarga la mejor escena Landsat (menor CLOUD_COVER) dentro de un rango de
-#' fechas corto como raster RGB + NDVI, para usar como base de una futura
-#' clasificación de cobertura (ej. cruce con una capa de CONAF).
-#' No pasa por Google Drive: usa la descarga directa de rgee (getDownloadURL).
-#'
-#' @param shp_path Ruta al shapefile del área de interés (.shp)
-#' @param fecha_inicio,fecha_fin Rango de fechas donde buscar la mejor escena
-#'   (recomendado: una ventana corta, ~1 mes, al inicio del período a analizar)
-#' @param nombre_area Nombre identificador del área (usado en nombres de archivo)
-#' @param gee_user Usuario de Google Earth Engine (tu cuenta autenticada)
-#' @param output_dir Carpeta donde se guardará el TIF de salida
-#' @param scale Resolución de descarga en metros (default 30, nativa Landsat)
-extraer_raster_clasificacion <- function(shp_path,
-                                          fecha_inicio,
-                                          fecha_fin,
-                                          nombre_area,
-                                          gee_user,
-                                          output_dir = "02_output",
-                                          scale = 30) {
-
-  # 4.1 Inicializar GEE --------------------------------------------------------
-  cat("Inicializando sesión de Google Earth Engine...\n")
-  rgee::ee_Initialize(user = gee_user, drive = FALSE)  # la descarga usa getDownloadURL, no Drive
-
-  # 4.2 Leer el área de interés ------------------------------------------------
-  if (!file.exists(shp_path)) {
-    stop("No se encontró el shapefile en: ", shp_path)
-  }
-  area <- sf::st_read(shp_path, quiet = TRUE)
-  area <- sf::st_sf(geometry = sf::st_geometry(area))  # solo geometria, ver nota en extraer_landsat()
-  region_of_interest <- rgee::sf_as_ee(area)$geometry()
-
-  carpeta_area <- file.path(output_dir, paste0(nombre_area, "_", format(Sys.Date(), "%Y%m%d")))
-  dir.create(carpeta_area, recursive = TRUE, showWarnings = FALSE)
-
-  # 4.3 Elegir la escena menos nubosa del rango --------------------------------
-  coleccion <- ee$ImageCollection("LANDSAT/LC08/C02/T1_L2")$
-    filter(ee$Filter$date(fecha_inicio, fecha_fin))$
-    filter(ee$Filter$intersects(".geo", region_of_interest))$
-    sort("CLOUD_COVER")
-
-  n_escenas <- coleccion$size()$getInfo()
-  if (n_escenas == 0) {
-    stop("No se encontró ninguna escena Landsat entre ", fecha_inicio, " y ", fecha_fin,
-         " para esta área. Probá un rango de fechas más amplio.")
-  }
-  mejor_escena <- coleccion$first()
-  # system:time_start es un entero grande (epoch en milisegundos); pedirlo
-  # directo con getInfo() falla en Windows por overflow de C long al
-  # convertir Python->R. Se formatea como string DENTRO de Earth Engine
-  # (server-side) antes de traerlo, así nunca viaja el número grande.
-  fecha_escena <- as.Date(ee$Date(mejor_escena$get("system:time_start"))$format("YYYY-MM-dd")$getInfo())
-  nubosidad <- mejor_escena$get("CLOUD_COVER")$getInfo()
-  cat(n_escenas, "escena(s) en el rango. Usando la del", format(fecha_escena),
-      "(CLOUD_COVER =", nubosidad, "%).\n")
-
-  # 4.4 Armar RGB (reflectancia real) + NDVI, con el mismo enmascarado --------
-  # de nubes que extraer_landsat() -------------------------------------------
-  escena_enmascarada <- enmascarar_nubes_l8(mejor_escena)
-  reflectancia <- escena_enmascarada$
-    select(c("SR_B2", "SR_B3", "SR_B4", "SR_B5"))$
-    multiply(0.0000275)$add(-0.2)
-
-  ndvi <- reflectancia$normalizedDifference(c("SR_B5", "SR_B4"))$rename("NDVI")
-  rgb  <- reflectancia$select(c("SR_B4", "SR_B3", "SR_B2"))$rename(c("R", "G", "B"))
-  # normalizedDifference() devuelve Float64 mientras que multiply()/add() dejan
-  # las bandas RGB en Float32 -- toFloat() empareja el tipo de todas las bandas
-  # antes de exportar/descargar (si no, GEE tira "inconsistent types").
-  raster_salida <- rgb$addBands(ndvi)$clip(region_of_interest)$toFloat()
-
-  # 4.5 Descargar el raster directo a R (sin Drive) ----------------------------
-  ruta_tif <- file.path(carpeta_area, paste0(nombre_area, "_rgb_ndvi_", format(fecha_escena, "%Y%m%d"), ".tif"))
-  cat("Descargando raster (RGB + NDVI) a", ruta_tif, "...\n")
-
-  # La descarga a veces llega truncada/corrupta (falla GDAL recién al leer
-  # los píxeles, no al bajar el archivo), así que se valida leyendo todos
-  # los valores y se reintenta si hace falta.
-  raster_descargado <- NULL
-  intento <- 0
-  while (is.null(raster_descargado) && intento < 3) {
-    intento <- intento + 1
-    raster_descargado <- tryCatch({
-      r <- rgee::ee_as_rast(
-        image  = raster_salida,
-        region = region_of_interest,
-        dsn    = ruta_tif,
-        via    = "getDownloadURL",
-        scale  = scale
-      )
-      terra::values(r)  # fuerza a leer todos los píxeles; revienta acá si el archivo está corrupto
-      r
-    }, error = function(e) {
-      cat("  descarga intento", intento, "falló (", conditionMessage(e), "), reintentando...\n")
-      NULL
-    })
-  }
-  if (is.null(raster_descargado)) {
-    stop("No se pudo descargar un raster válido después de 3 intentos.")
-  }
-
-  # La descarga puede volver etiquetada como UTM 19N (coordenadas numéricamente
-  # consistentes pero con el EPSG "equivocado" para Chile) -- reproyectar acá
-  # en R (no server-side en GEE, que corrompía el GeoTIFF descargado) y
-  # renombrar bandas, que ee_as_rast() tampoco conserva.
-  # (no se puede sobreescribir el mismo archivo del que se está leyendo:
-  # se graba a un temporal y se reemplaza.)
-  raster_descargado <- terra::project(raster_descargado, "EPSG:32719")
-  names(raster_descargado) <- c("R", "G", "B", "NDVI")
-  ruta_temporal <- tempfile(fileext = ".tif")
-  terra::writeRaster(raster_descargado, ruta_temporal, overwrite = TRUE)
-  file.copy(ruta_temporal, ruta_tif, overwrite = TRUE)
-  file.remove(ruta_temporal)
-
-  cat("✔️ Raster de clasificación guardado en:", ruta_tif, "\n")
-  return(list(tif_path = ruta_tif, fecha_escena = fecha_escena, cloud_cover = nubosidad))
 }

@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "Si usás este software, por favor citalo como se indica a continuación."
-title: "Automatización de Análisis Fenológico — Landsat"
+title: "Automatización de Análisis Fenológico con Landsat"
 abstract: >-
   Pipeline automatizado para caracterizar la respuesta fenológica de cualquier
   área de interés a partir de un shapefile de entrada, usando series de

@@ -6,9 +6,9 @@
 # reinicios de R).
 # ==========================================================================
 
-rgee::ee_Initialize(user = "agustincoddoudiaz@gmail.com", drive = FALSE)  # no usamos Drive en ningún paso del pipeline
+rgee::ee_Initialize(user = "tu_correo@gmail.com", drive = FALSE)  # no usamos Drive en ningún paso del pipeline
 
 # Si el token de Earth Engine expira (error "EE credential has expired"),
 # correr una vez y volver a intentar:
-#   rgee::ee_clean_user_credentials(user = "agustincoddoudiaz@gmail.com")
-#   rgee::ee_Authenticate(user = "agustincoddoudiaz@gmail.com")
+#   rgee::ee_clean_user_credentials(user = "tu_correo@gmail.com")
+#   rgee::ee_Authenticate(user = "tu_correo@gmail.com")

@@ -63,13 +63,28 @@ limpiar_series <- function(input_csv,
     filter(!is.na(ndvi_valor)) %>%                    # descarta píxeles enmascarados por nubes
     inner_join(info_columnas, by = "columna")
 
+  # El último año del rango pedido puede estar en curso (todavía no pasaron
+  # todos sus periodos): completarlo igual hasta periods_per_year arrastraría
+  # el último NDVI real hacia adelante de forma plana con na.approx(rule=2),
+  # simulando meses que no ocurrieron. Se completa ese año solo hasta su
+  # último periodo con datos reales; los años anteriores se completan enteros.
+  ultimo_anio <- max(target_years)
+  periodo_max_ultimo_anio <- info_columnas %>%
+    filter(year == ultimo_anio) %>%
+    summarise(m = max(periodo)) %>%
+    pull(m)
+  grilla_anio_periodo <- purrr::map_dfr(target_years, function(anio) {
+    max_p <- if (anio == ultimo_anio) periodo_max_ultimo_anio else periods_per_year
+    tibble(year = anio, periodo = 1:max_p)
+  })
+
   datos_regularizados <- datos_largo %>%
     group_by(id_row, x, y, year, periodo) %>%
     # si hay más de una pasada válida en el mismo periodo, se toma el valor
     # más alto: dentro de un periodo corto, más NDVI = menos contaminación
     # residual de nubes/sombra que el enmascarado QA_PIXEL no haya sacado
     summarise(ndvi_agg = max(ndvi_valor, na.rm = TRUE), .groups = "drop") %>%
-    tidyr::complete(nesting(id_row, x, y), year = target_years, periodo = 1:periods_per_year) %>%
+    tidyr::complete(nesting(id_row, x, y), grilla_anio_periodo) %>%
     arrange(id_row, year, periodo) %>%
     group_by(id_row) %>%
     mutate(ndvi_interpolado = zoo::na.approx(ndvi_agg, na.rm = FALSE, rule = 2)) %>%

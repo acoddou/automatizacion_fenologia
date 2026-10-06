@@ -9,9 +9,8 @@
 02_output/*/
 !02_output/.gitkeep
 
-# Datos de entrada (shapefiles, catastro CONAF, bibliografía, documentos) --
-# se quedan en el computador por ahora; la interfaz permitirá subirlos, y
-# datos pesados como el catastro se evaluarán aparte (ej. Zenodo) si hace falta
+# Datos de entrada (shapefiles, capas de cobertura, documentos) --
+# se quedan en el computador, no se suben al repo
 00_input/*
 !00_input/.gitkeep
 
